@@ -1,30 +1,53 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+	<div id="app">
+		<div class="wrapper">
+			<div class="poster"><img src="./assets/poster.jpg" alt="Frank Klepacki and Tiberian Sons" /></div>
+			<div class="favourite-list-songs">
+				<ul>
+					<li v-for="item in items" :key="item.id">
+						<div>{{ item.song }}</div>
+						<div class="button-and-counter">
+							<button @click="incrementLikes(item)"><img src="./assets/heart-icon.svg" alt="" /></button>
+							<div id="counter">{{ item.likes }}</div>
+						</div>
+					</li>
+					<hr />
+				</ul>
+			</div>
+		</div>
+	</div>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+<script>
+import { query, collection, getDocs, orderBy, updateDoc, doc } from 'firebase/firestore'
+import { db } from './firebase.js'
+
+export default (await import('vue')).defineComponent({
+	data() {
+		return {
+			items: []
+		}
+	},
+	created() {
+		this.getItems()
+	},
+	methods: {
+		async getItems() {
+			const q = query(collection(db, 'songs'), orderBy('likes', 'desc'))
+			const querySnap = await getDocs(q)
+
+			querySnap.forEach(doc => {
+				this.items.push({ id: doc.id, ...doc.data() })
+			})
+		},
+		async incrementLikes(item) {
+			const docRef = doc(db, 'songs', item.id)
+			await updateDoc(docRef, {
+				likes: item.likes + 1
+			})
+			item.likes += 1
+			this.items.sort((a, b) => b.likes - a.likes)
+		}
+	}
+})
+</script>
